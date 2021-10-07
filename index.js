@@ -22,7 +22,7 @@ const storage = multer.diskStorage({ // https://www.npmjs.com/package/multer#dis
 var upload = multer({ storage: storage })
 
 var socketIo = require("socket.io");
-const PORT = 5000 || process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
 var io = socketIo(server);
