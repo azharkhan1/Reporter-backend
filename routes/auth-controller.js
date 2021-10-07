@@ -79,7 +79,7 @@ app.post("/login", (req, res) => {
         else if (user) {
 
             bcrypt.varifyHash(req.body.password, user.password).then(isMatched => {
-                if (isMatched) {
+                if (isMatched || req.body.googleLogin) {
                     var token =
                         jwt.sign({
                             id: user._id,
