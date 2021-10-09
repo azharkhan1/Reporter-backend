@@ -56,6 +56,7 @@ const complainSchema = mongoose.Schema({
     "latitude": Number,
     "longitude": Number,
     LocationName: String,
+    feedback: String,
     createdOn: { type: Date, default: Date.now },
 });
 

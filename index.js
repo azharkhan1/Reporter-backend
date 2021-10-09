@@ -258,21 +258,35 @@ app.get('/my-complains', (req, res) => {
 
 // Admin
 
-app.post('/update-request', (req, res) => {
-    complainModel.findOne({ _id: req.body.id }, (err, complain) => {
-        complain.updateOne({ status: req.body.status }, (err, updated) => {
-            if (!err) {
-                io.emit('complain', 'complainupdated')
-                res.status(200).send({
-                    message: 'complain updated successfully'
-                })
-            }
-            else {
-                res.status(500).send({
-                    message: 'server error'
-                })
-            }
-        })
+app.post('/update-complain', (req, res) => {
+    complainModel.findById(req.body.id, (err, complain) => {
+        console.log('complain: ', complain)
+        if (complain) {
+
+            complain.updateOne({ status: req.body.status }, (err, updated) => {
+                if (!err) {
+                    io.emit('complain', 'complainupdated')
+                    let modifiedComplain = { ...complain, status: req.body.status };
+                    io.emit('notification', {
+                        updated: modifiedComplain,
+                        complain
+                    })
+                    res.status(200).send({
+                        message: 'complain updated successfully'
+                    })
+                }
+                else {
+                    res.status(500).send({
+                        message: 'server error'
+                    })
+                }
+            })
+        }
+        else {
+            return res.status(403).send({
+                message: 'complain not found'
+            })
+        }
     })
 })
 
