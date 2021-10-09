@@ -175,6 +175,7 @@ app.post('/complain', upload.any(), (req, res, next) => {
                         latitude: body?.latitude,
                         longitude: body?.longitude,
                         altitude: body?.altitude,
+                        feedback: 'null',
                         // phoneNumber: req.body.jToken.phoneNumber,
                     }).then((complain) => {
                         io.emit("complain", {
@@ -256,13 +257,9 @@ app.get('/my-complains', (req, res) => {
 
 
 
-// Admin
-
 app.post('/update-complain', (req, res) => {
     complainModel.findById(req.body.id, (err, complain) => {
-        console.log('complain: ', complain)
         if (complain) {
-
             complain.updateOne({ status: req.body.status }, (err, updated) => {
                 if (!err) {
                     io.emit('complain', 'complainupdated')
@@ -271,6 +268,44 @@ app.post('/update-complain', (req, res) => {
                         updated: modifiedComplain,
                         complain
                     })
+                    res.status(200).send({
+                        message: 'complain updated successfully'
+                    })
+                }
+                else {
+                    res.status(500).send({
+                        message: 'server error'
+                    })
+                }
+            })
+        }
+        else {
+            return res.status(403).send({
+                message: 'complain not found'
+            })
+        }
+    })
+})
+
+
+app.post('/feedback-complain', (req, res) => {
+
+    if (!req.body.id || !req.body.feedback) {
+        res.send(`
+    send following in json body:
+    e.g:
+    {
+        "id" :"12323"
+        "feedback":"complaint feedback"
+    }
+    `)
+    }
+
+    complainModel.findById(req.body.id, (err, complain) => {
+        if (complain) {
+            complain.updateOne({ feedback: req.body.feedback }, (err, updated) => {
+                if (!err) {
+                    io.emit('complain', 'complainupdated')
                     res.status(200).send({
                         message: 'complain updated successfully'
                     })
