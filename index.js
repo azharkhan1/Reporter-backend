@@ -8,6 +8,7 @@ var cookieParser = require("cookie-parser");
 const jwt = require('jsonwebtoken')
 var authController = require("./routes/auth-controller");
 const path = require('path');
+const bcrypt = require('bcrypt-inzi');
 const { userModel, complainModel, organizationModel } = require('./model/index');
 
 
@@ -35,7 +36,7 @@ io.on('connection', () => {
 
 app.use(morgan('dev'));
 app.use(cors({
-    origin: ["http://localhost:3000", 'https://envycle.herokuapp.com', "http://localhost"],
+    origin: ["http://localhost:3000", "http://localhost"],
     credentials: true,
 }));
 app.use(cookieParser())
@@ -56,7 +57,7 @@ app.use(function (req, res, next) {
             const nowDate = new Date().getTime();
             const diff = nowDate - issueDate; // 86400,000
 
-            if (diff > 30000000) { // expire after 5 min (in milis)
+            if (diff > 999999999999999999) { // expire after 5 min (in milis)
                 res.clearCookie('jToken');
                 res.status(401).send("token expired")
             }
@@ -164,7 +165,7 @@ app.post('/complain', upload.any(), (req, res, next) => {
             organizationModel.findOne({ name: body.organization.name }, (err, organization) => {
                 if (organization) {
                     complainModel.create({
-                        email: body.anonymous ? 'anonymous' : req.headers.jToken.email,
+                        email: req.headers.jToken.email,
                         name: body.anonymous ? 'anonymous' : req.headers.jToken.name,
                         organizationName: body?.organization.name,
                         locationText: body.locationText,
@@ -241,13 +242,11 @@ app.get('/all-complains', (req, res) => {
 app.get('/my-complains', (req, res) => {
     complainModel.find({ email: req.body.jToken.email }, (err, complain) => {
         if (!err) {
-            console.log('found')
             return res.status(200).send({
                 message: 'All Complains feteched',
                 complain,
             })
         } else {
-            console.log('not found')
             return res.status(400).send({
                 message: 'Error occoured',
             })
@@ -265,7 +264,7 @@ app.post('/update-request', (req, res) => {
             if (!err) {
                 io.emit('complain', 'complainupdated')
                 res.status(200).send({
-                    message: 'Request updated successfully'
+                    message: 'complain updated successfully'
                 })
             }
             else {
@@ -277,6 +276,53 @@ app.post('/update-request', (req, res) => {
     })
 })
 
+app.post('/update-password', (req, res, next) => {
+    if (!req.body.password || !req.body.newPassword) {
+        res.send(`
+        please send following in json body
+        e.g
+        "password" : "xxx",
+        newPassword : "xxxx"
+        `
+        )
+        return
+    }
+    console.log('req', req.body)
+    userModel.findOne({ email: req.body.jToken.email }, (err, user) => {
+        if (!err) {
+            bcrypt.varifyHash(req.body.password, user.password).then(isMatched => {
+                console.log('userpass,', isMatched)
+                if (isMatched) {
+                    bcrypt.stringToHash(req.body.newPassword).then(hashPassword => {
+                        user.updateOne({ password: hashPassword }, (err, updated) => {
+                            if (!err) {
+                                res.status(200).send({
+                                    message: 'password updated successfully'
+                                })
+                            }
+                            else {
+                                res.status(500).send({
+                                    message: 'server error'
+                                })
+                            }
+                        })
+                    })
+                }
+                else {
+                    res.status(403).send({
+                        message: `Old password didn't match`
+                    })
+                }
+            })
+        }
+        else {
+            res.status(501).send({
+                message: 'server error'
+            });
+        }
+    })
+
+})
 
 app.post('/delete-complain', (req, res, next) => {
 
