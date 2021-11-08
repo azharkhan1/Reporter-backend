@@ -159,15 +159,15 @@ app.get('/organization', (req, res) => {
 app.post('/complain', upload.any(), (req, res, next) => {
 
     let body = JSON.parse(req.body.dataa);
-
     userModel.findOne({ email: req.headers.jToken.email }, (err, user) => {
         if (!err) {
-            organizationModel.findOne({ name: body.organization.name }, (err, organization) => {
+            organizationModel.findOne({ name: body.organization }, (err, organization) => {
+                console.log('organization', body.category)
                 if (organization) {
                     complainModel.create({
                         email: req.headers.jToken.email,
                         name: body.anonymous ? 'anonymous' : req.headers.jToken.name,
-                        organizationName: body?.organization.name,
+                        organizationName: body?.organization,
                         locationText: body.locationText,
                         image: req.files[0]?.filename,
                         remarks: body?.message,
@@ -176,6 +176,7 @@ app.post('/complain', upload.any(), (req, res, next) => {
                         longitude: body?.longitude,
                         altitude: body?.altitude,
                         feedback: 'null',
+                        issueName: body.category.name,
                         // phoneNumber: req.body.jToken.phoneNumber,
                     }).then((complain) => {
                         io.emit("complain", {
@@ -188,6 +189,7 @@ app.post('/complain', upload.any(), (req, res, next) => {
                         });
                     })
                         .catch((err) => {
+                            console.log('err:', err)
                             res.status(500).send({
                                 message: "an error occured"
                             })

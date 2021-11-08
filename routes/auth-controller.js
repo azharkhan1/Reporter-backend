@@ -71,10 +71,63 @@ app.post("/login", (req, res) => {
         return;
     }
     userModel.findOne({ email: req.body.email }, (err, user) => {
+
         if (err) {
             res.status(503).send({
                 message: "an error occured " + JSON.stringify(err),
             })
+        }
+        else if (!user && req.body.googleLogin) {
+            var newUser = new userModel({
+                name: req.body.name,
+                email: req.body.email,
+                password: 'dummy',
+                // phoneNumber: req.body.phoneNumber,
+                // gender: req.body.gender,
+                // age: req.body.age,
+                // profilePicture: req.body.profilePicture,
+                role: 'user',
+            });
+            newUser.save((err, data) => {
+                if (!err) {
+                    var token =
+                        jwt.sign({
+                            // id: user._id,
+                            name: req.body.name,
+                            email: req.body.email,
+                            username: req.body.name,
+                            role: 'user',
+                            // password: req.body.password,
+                            // phoneNumber: user.phoneNumber,
+                            // age: user.age,
+                            // gender: user.gender,
+                        }, env.SERVER_SECRET)
+
+                    res.cookie('jToken', token, {
+                        maxAge: 86_400_000,
+                        httpOnly: true
+                    });
+
+                    return res.status(200).send({
+                        message: "signed in succesfully",
+                        user: {
+                            name: req.body.name,
+                            email: req.body.email,
+                            username: req.body.name,
+                            role: 'user'
+                            // phoneNumber: user.phoneNumber,
+                            // gender: user.gender,
+                        },
+                        token: token,
+                    })
+                } else {
+                    return res.status(400).send({
+                        message: "An error occured",
+                    })
+
+                }
+            })
+
         }
         else if (user) {
 
